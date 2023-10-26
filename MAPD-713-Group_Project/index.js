@@ -111,19 +111,19 @@ server.post("/patients", function (req, res, next) {
 
 // Delete user with the given id
 server.del("/patients/:id", function (req, res, next) {
-  console.log("POST /patients params=>" + JSON.stringify(req.params));
+  console.log("DELETE /patients params=>" + JSON.stringify(req.params));
   // Delete the user in db
   PatientsModel.findOneAndDelete({ _id: req.params.id })
     .then((deletedUser) => {
-      console.log("deleted patient: " + deletedUser);
       if (deletedUser) {
         res.send(200, deletedUser);
+        console.log("deleted patient: " + deletedUser);
       } else {
         res.send(404, "Patient not found");
       }
       return next();
     })
-    .catch(() => {
+    .catch((error) => {
       console.log("error: " + error);
       return next(new Error(JSON.stringify(error.errors)));
     });
