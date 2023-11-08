@@ -45,6 +45,7 @@ server.listen(PORT, HOST, function () {
   console.log("********************");
   console.log(" /patients");
   console.log(" /patients/:id");
+  console.log(" /patients/:id/clinicaldata");
 });
 
 server.use(restify.plugins.fullResponse());
@@ -155,7 +156,7 @@ server.del("/patients/:id", function (req, res, next) {
     });
 });
 
-// Endpoint to add clinical data for a specific patient
+// Add clinical data for a specific patient
 server.post("/patients/:id/clinicaldata", function (req, res, next) {
   console.log("POST /patients/:id/clinicaldata params=>" + JSON.stringify(req.params));
   console.log("POST /patients/:id/clinicaldata body=>" + JSON.stringify(req.body));
@@ -163,35 +164,32 @@ server.post("/patients/:id/clinicaldata", function (req, res, next) {
       let newClinicalData = new ClinicalDataModel(req.body);
       newClinicalData.patientId = req.params.id
       
-      newClinicalData
-        .save()
-        .then((patient) => {
-          console.log("saved clinical data: " + patient);
-          // Send the user if no issues
-          res.send(201, patient);
-          return next();
-        })
-        .catch((error) => {
-          console.log("error: " + error);
-          return next(new Error(JSON.stringify(error.errors)));
-        });
-  // ClinicalDataModel.findBy(req.params.id)
-  //   .then((patient) => {
-  //     if (!patient) {
-  //       res.send(404, "Patient not found");
-  //       return next();
-  //     }
+     // Extract measurements from the request body
+  const { bp_systolic, bp_diastolic, respiratory_rate, blood_oxygen_level, pulse_rate } = req.body;
 
-  //   })
-  //   .then((updatedPatient) => {
-  //     res.send(201, "Clinical data added to patient: " + updatedPatient._id);
-  //     return next();
-  //   })
-  //   .catch((error) => {
-  //     console.log("error: " + error);
-  //     return next(new Error(JSON.stringify(error.errors)));
-  //   });
+  // Determine critical condition based on measurements
+  if (
+    bp_systolic > 180 || bp_diastolic > 120 || respiratory_rate > 30 || blood_oxygen_level < 90 || pulse_rate > 120
+  ) {
+    newClinicalData.is_critical_condition = true;
+  } else {
+    newClinicalData.is_critical_condition = false;
+  }
+
+  newClinicalData
+    .save()
+    .then((patient) => {
+      console.log("saved clinical data: " + patient);
+      // Send the user if no issues
+      res.send(201, patient);
+      return next();
+    })
+    .catch((error) => {
+      console.log("error: " + error);
+      return next(new Error(JSON.stringify(error.errors)));
+    });
 });
+
 
 // Retrieve all clinical data for a specific patient
 server.get("/patients/:id/clinicaldata", function (req, res, next) {
