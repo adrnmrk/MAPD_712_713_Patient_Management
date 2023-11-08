@@ -24,13 +24,18 @@ db.once("open", () => {
  * Creating a new model
  ******/
 // Instead of defining schema here like "{firstname: String, age: number}", use constant PATIENT_SCHEMA from ./Patient.js
-const patientSchema = new mongoose.Schema(PATIENT_SCHEMA, {timestamps: true});
-const clinicalDataSchema = new mongoose.Schema(CLINICAL_DATA_SCHEMA, {timestamps: true});
+const patientSchema = new mongoose.Schema(PATIENT_SCHEMA, { timestamps: true });
+const clinicalDataSchema = new mongoose.Schema(CLINICAL_DATA_SCHEMA, {
+  timestamps: true,
+});
 
-// Compiles the schema into a model, 
+// Compiles the schema into a model,
 //opening (or creating, if nonexistent) the 'Patients' collection in the MongoDB database
 let PatientsModel = mongoose.model("Patients", patientSchema);
-let ClinicalDataModel = mongoose.model("Patients/:id/ClinicalData", clinicalDataSchema);
+let ClinicalDataModel = mongoose.model(
+  "Patients/:id/ClinicalData",
+  clinicalDataSchema
+);
 /******
  * END Creating an new model
  ******/
@@ -89,8 +94,6 @@ server.get("/patients/:id", function (req, res, next) {
       console.log("error: " + error);
       return next(new Error(JSON.stringify(error.errors)));
     });
-
-
 });
 
 // Create a new patient
@@ -122,7 +125,9 @@ server.put("/patients/:id", function (req, res, next) {
   console.log("PUT /patients params=>" + JSON.stringify(req.params));
   console.log("PUT /patients body=>" + JSON.stringify(req.body));
 
-  PatientsModel.findOneAndUpdate({ _id: req.params.id }, req.body, { new: true })
+  PatientsModel.findOneAndUpdate({ _id: req.params.id }, req.body, {
+    new: true,
+  })
     .then((updatedPatient) => {
       if (updatedPatient) {
         res.send(200, updatedPatient);
@@ -137,6 +142,21 @@ server.put("/patients/:id", function (req, res, next) {
       return next(new Error(JSON.stringify(error.errors)));
     });
 });
+//function to update patient record
+async function updatePatient(patientId, updateFields) {
+  try {
+    const patient = await PatientsModel.findByIdAndUpdate(
+      patientId,
+      updateFields,
+      { new: true }
+    );
+    return patient;
+  } catch (error) {
+    console.error(`Error while updating ${updateFields} for patient:`, error);
+    throw error;
+  }
+}
+
 // Delete user with the given id
 server.del("/patients/:id", function (req, res, next) {
   console.log("DELETE /patients params=>" + JSON.stringify(req.params));
@@ -157,26 +177,44 @@ server.del("/patients/:id", function (req, res, next) {
     });
 });
 
-// Add clinical data for a specific patient
+// Add clinical data for a specific patient and update the is_patient_critical for both clinical data and patient record
 server.post("/patients/:id/clinicaldata", function (req, res, next) {
-  console.log("POST /patients/:id/clinicaldata params=>" + JSON.stringify(req.params));
-  console.log("POST /patients/:id/clinicaldata body=>" + JSON.stringify(req.body));
+  console.log(
+    "POST /patients/:id/clinicaldata params=>" + JSON.stringify(req.params)
+  );
+  console.log(
+    "POST /patients/:id/clinicaldata body=>" + JSON.stringify(req.body)
+  );
 
-      let newClinicalData = new ClinicalDataModel(req.body);
-      newClinicalData.patientId = req.params.id
-      
-     // Extract measurements from the request body
-  const { bp_systolic, bp_diastolic, respiratory_rate, blood_oxygen_level, pulse_rate } = req.body;
+  //create new record for a specific patient
+  let newClinicalData = new ClinicalDataModel(req.body);
+  newClinicalData.patientId = req.params.id;
+
+  // Extract measurements from the request body
+  const {
+    bp_systolic,
+    bp_diastolic,
+    respiratory_rate,
+    blood_oxygen_level,
+    pulse_rate,
+  } = req.body;
 
   // Determine critical condition based on measurements
   if (
-    bp_systolic > 180 || bp_diastolic > 120 || respiratory_rate > 30 || blood_oxygen_level < 90 || pulse_rate > 120
+    bp_systolic > 180 ||
+    bp_diastolic > 120 ||
+    respiratory_rate > 30 ||
+    blood_oxygen_level < 90 ||
+    pulse_rate > 120
   ) {
     newClinicalData.is_critical_condition = true;
   } else {
     newClinicalData.is_critical_condition = false;
   }
-
+  //update is_critical based on latest measurement
+  updatePatient(newClinicalData.patientId, {
+    is_patient_critical: newClinicalData.is_critical_condition,
+  });
   newClinicalData
     .save()
     .then((patient) => {
@@ -193,9 +231,11 @@ server.post("/patients/:id/clinicaldata", function (req, res, next) {
 
 // Retrieve all clinical data for a specific patient
 server.get("/patients/:id/clinicaldata", function (req, res, next) {
-  console.log("GET /patients/:id/clinicaldata params=>" + JSON.stringify(req.params));
+  console.log(
+    "GET /patients/:id/clinicaldata params=>" + JSON.stringify(req.params)
+  );
 
-  ClinicalDataModel.find({patientId: req.params.id})
+  ClinicalDataModel.find({ patientId: req.params.id })
     .then((clinicalData) => {
       if (!clinicalData) {
         res.send(404, "Patient not found");
@@ -212,37 +252,48 @@ server.get("/patients/:id/clinicaldata", function (req, res, next) {
 });
 
 // Delete specific clinical data for a patient by ID
-server.del("/patients/:id/clinicaldata/:clinicalDataId", function (req, res, next) {
-  console.log("DELETE /patients/:id/clinicaldata/:clinicalDataId params=>" + JSON.stringify(req.params));
+server.del(
+  "/patients/:id/clinicaldata/:clinicalDataId",
+  function (req, res, next) {
+    console.log(
+      "DELETE /patients/:id/clinicaldata/:clinicalDataId params=>" +
+        JSON.stringify(req.params)
+    );
 
-  PatientsModel.findById(req.params.id)
-    .then((patient) => {
-      if (!patient) {
-        res.send(404, "Patient not found");
+    PatientsModel.findById(req.params.id)
+      .then((patient) => {
+        if (!patient) {
+          res.send(404, "Patient not found");
+          return next();
+        }
+
+        // Remove the specified clinical data from the patient's records by its index
+        const index = patient.clinicalData.findIndex(
+          (data) => data._id == req.params.clinicalDataId
+        );
+        if (index !== -1) {
+          patient.clinicalData.splice(index, 1);
+        } else {
+          res.send(404, "Clinical data not found");
+          return next();
+        }
+
+        // Save the updated patient document
+        return patient.save();
+      })
+      .then((updatedPatient) => {
+        res.send(
+          200,
+          "Clinical data deleted from patient: " + updatedPatient._id
+        );
         return next();
-      }
-
-      // Remove the specified clinical data from the patient's records by its index
-      const index = patient.clinicalData.findIndex(data => data._id == req.params.clinicalDataId);
-      if (index !== -1) {
-        patient.clinicalData.splice(index, 1);
-      } else {
-        res.send(404, "Clinical data not found");
-        return next();
-      }
-
-      // Save the updated patient document
-      return patient.save();
-    })
-    .then((updatedPatient) => {
-      res.send(200, "Clinical data deleted from patient: " + updatedPatient._id);
-      return next();
-    })
-    .catch((error) => {
-      console.log("error: " + error);
-      return next(new Error(JSON.stringify(error.errors)));
-    });
-});
+      })
+      .catch((error) => {
+        console.log("error: " + error);
+        return next(new Error(JSON.stringify(error.errors)));
+      });
+  }
+);
 
 // Retrieve patients in critical condition based on their latest clinical data
 server.get("/patients/critical", async function (req, res) {
@@ -252,9 +303,9 @@ server.get("/patients/critical", async function (req, res) {
       {
         $group: {
           _id: "$patientId",
-          latestRecord: { $first: "$$ROOT" }
-        }
-      }
+          latestRecord: { $first: "$$ROOT" },
+        },
+      },
     ]);
 
     const criticalPatients = [];
@@ -274,6 +325,3 @@ server.get("/patients/critical", async function (req, res) {
     res.send(500, "Internal Server Error");
   }
 });
-
-
-
