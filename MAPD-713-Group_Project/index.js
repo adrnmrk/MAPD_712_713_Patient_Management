@@ -1,44 +1,13 @@
 let SERVER_NAME = "patient-api";
 let PORT = 3000;
 let HOST = "127.0.0.1";
+const dbConfig = require("./dbConfig");
 
-// get PATIENT_SCHEMA from ./Patient.js file
-const { PATIENT_SCHEMA } = require("./Patient");
-// get CLINICAL_DATA_SCHEMA from ./ClinicalData.js file
-const { CLINICAL_DATA_SCHEMA } = require("./ClinicalData");
+// Connect to the database
+dbConfig.connectDB();
 
-const mongoose = require("mongoose");
-
-let uristring = "mongodb://127.0.0.1:27017/data";
-
-// Makes db connection asynchronously
-mongoose.connect(uristring, { useNewUrlParser: true });
-const db = mongoose.connection;
-db.on("error", console.error.bind(console, "connection error:"));
-db.once("open", () => {
-  // we're connected!
-  console.log("!!!! Connected to db: " + uristring);
-});
-
-/******
- * Creating a new model
- ******/
-// Instead of defining schema here like "{firstname: String, age: number}", use constant PATIENT_SCHEMA from ./Patient.js
-const patientSchema = new mongoose.Schema(PATIENT_SCHEMA, { timestamps: true });
-const clinicalDataSchema = new mongoose.Schema(CLINICAL_DATA_SCHEMA, {
-  timestamps: true,
-});
-
-// Compiles the schema into a model,
-//opening (or creating, if nonexistent) the 'Patients' collection in the MongoDB database
-let PatientsModel = mongoose.model("Patients", patientSchema);
-let ClinicalDataModel = mongoose.model(
-  "Patients/:id/ClinicalData",
-  clinicalDataSchema
-);
-/******
- * END Creating an new model
- ******/
+// Create models after the database connection is established
+const { PatientsModel, ClinicalDataModel } = dbConfig.createModels();
 
 let restify = require("restify"),
   // Create the restify server
