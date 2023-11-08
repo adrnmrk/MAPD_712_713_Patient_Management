@@ -24,8 +24,8 @@ db.once("open", () => {
  * Creating a new model
  ******/
 // Instead of defining schema here like "{firstname: String, age: number}", use constant PATIENT_SCHEMA from ./Patient.js
-const patientSchema = new mongoose.Schema(PATIENT_SCHEMA);
-const clinicalDataSchema = new mongoose.Schema(CLINICAL_DATA_SCHEMA);
+const patientSchema = new mongoose.Schema(PATIENT_SCHEMA, {timestamps: true});
+const clinicalDataSchema = new mongoose.Schema(CLINICAL_DATA_SCHEMA, {timestamps: true});
 
 // Compiles the schema into a model, 
 //opening (or creating, if nonexistent) the 'Patients' collection in the MongoDB database
@@ -46,6 +46,7 @@ server.listen(PORT, HOST, function () {
   console.log(" /patients");
   console.log(" /patients/:id");
   console.log(" /patients/:id/clinicaldata");
+  console.log(" /patients/critical");
 });
 
 server.use(restify.plugins.fullResponse());
@@ -190,7 +191,6 @@ server.post("/patients/:id/clinicaldata", function (req, res, next) {
     });
 });
 
-
 // Retrieve all clinical data for a specific patient
 server.get("/patients/:id/clinicaldata", function (req, res, next) {
   console.log("GET /patients/:id/clinicaldata params=>" + JSON.stringify(req.params));
@@ -243,4 +243,37 @@ server.del("/patients/:id/clinicaldata/:clinicalDataId", function (req, res, nex
       return next(new Error(JSON.stringify(error.errors)));
     });
 });
+
+// Retrieve patients in critical condition based on their latest clinical data
+server.get("/patients/critical", async function (req, res) {
+  try {
+    const latestRecords = await ClinicalDataModel.aggregate([
+      { $sort: { createdAt: -1 } },
+      {
+        $group: {
+          _id: "$patientId",
+          latestRecord: { $first: "$$ROOT" }
+        }
+      }
+    ]);
+
+    const criticalPatients = [];
+
+    for (const record of latestRecords) {
+      const { patientId, is_critical_condition } = record.latestRecord;
+
+      if (is_critical_condition) {
+        const patient = await PatientsModel.findOne({ _id: patientId });
+        criticalPatients.push(patient);
+      }
+    }
+
+    res.send(criticalPatients); // Send the list of patients in critical condition
+  } catch (error) {
+    console.log("error: " + error);
+    res.send(500, "Internal Server Error");
+  }
+});
+
+
 

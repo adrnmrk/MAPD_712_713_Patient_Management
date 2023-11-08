@@ -1,4 +1,5 @@
 // Defines CLINICAL_DATA data
+
 const CLINICAL_DATA_SCHEMA = {
     patientId: String,
     bp_systolic: Number,

@@ -28,13 +28,8 @@ const PATIENT_SCHEMA = {
     insuranceContactNumber: String,
     emergencyContactPerson: String,
     emergencyContactNumber: String,
-    // // clinicalData field holds an array of references to ClinicalData documents
-    // clinicalData: [
-    //     {
-    //       type: mongoose.Schema.Types.ObjectId,
-    //       ref: 'ClinicalData'
-    //     }
-    //   ]
+    is_patient_critical: Boolean
+
 };
 
 // Makes the PATIENT_SCHEMA visible to other files
