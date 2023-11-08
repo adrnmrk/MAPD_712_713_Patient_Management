@@ -2,11 +2,14 @@ const mongoose = require("mongoose");
 const { PATIENT_SCHEMA } = require("./Patient");
 const { CLINICAL_DATA_SCHEMA } = require("./ClinicalData");
 
-// Database configuration
+const username = "admin-01";
+const password = "abcd1234";
+const dbname = "Cluster09255";
+const uristring = `mongodb+srv://${username}:${password}@cluster09255.ediwzjm.mongodb.net/${dbname}?retryWrites=true&w=majority`;
+
 const dbConfig = {
   connectDB: async () => {
     try {
-      const uristring = "mongodb://127.0.0.1:27017/data";
       await mongoose.connect(uristring, { useNewUrlParser: true });
       console.log("Connected to the database");
     } catch (error) {
