@@ -1,3 +1,5 @@
+const mongoose = require('mongoose');
+
 // Defines Patient data
 const PATIENT_SCHEMA = {
     firstName: String,
@@ -25,7 +27,14 @@ const PATIENT_SCHEMA = {
     insuranceIdNumber: String,
     insuranceContactNumber: String,
     emergencyContactPerson: String,
-    emergencyContactNumber: String
+    emergencyContactNumber: String,
+    // // clinicalData field holds an array of references to ClinicalData documents
+    // clinicalData: [
+    //     {
+    //       type: mongoose.Schema.Types.ObjectId,
+    //       ref: 'ClinicalData'
+    //     }
+    //   ]
 };
 
 // Makes the PATIENT_SCHEMA visible to other files
