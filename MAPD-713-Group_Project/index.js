@@ -46,12 +46,12 @@ server.get("/patients", function (req, res, next) {
 server.get("/patients/:id", function (req, res, next) {
   console.log("GET /patients/:id params=>" + JSON.stringify(req.params));
 
-  // Find a single user by their id in db
+  // Find a single user by their id in DB
   PatientsModel.findOne({ _id: req.params.id })
     .then((patient) => {
       console.log("found user: " + patient);
       if (patient) {
-        // Send the user if no issues
+        // Send the user data if no issues
         res.send(patient);
       } else {
         // Send 404 header if the user doesn't exist
@@ -66,16 +66,16 @@ server.get("/patients/:id", function (req, res, next) {
 });
 
 // Create a new patient
+//defines the callback function that handles the incoming request, takes in three parameters: req (request), res (response), and next (next middleware).
 server.post("/patients", function (req, res, next) {
   console.log("POST /patients params=>" + JSON.stringify(req.params));
   console.log("POST /patients body=>" + JSON.stringify(req.body));
 
-  // Assuming the request body contains all the fields defined in the schema
-  // BEFORE: new PatientsModel({first: req.body.name, age: req.body.age})
-
+  // creates an instance of the PatientsModel, assuming the request body contains all the fields defined in the schema
   let newPatient = new PatientsModel(req.body); // Assuming all fields are in the body
 
-  // Create the patient and save to db
+  //.save() persists the newly created newPatient to the database. 
+  //The operation returns a Promise that, when resolved, returns the saved patient.
   newPatient
     .save()
     .then((patient) => {
