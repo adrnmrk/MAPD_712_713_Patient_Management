@@ -126,8 +126,30 @@ async function updatePatient(patientId, updateFields) {
   }
 }
 
-// Delete user with the given id
-server.del("/patients/:id", function (req, res, next) {
+// Delete user with the given id along with the associated clinical data
+server.del("/patients/:id", function (req, res, next){
+  console.log("DELETE /patients params =>" + JSON.stringify(req.params));
+
+  //delete the user + their clinical data in DB
+  PatientsModel.findOneAndDelete({ _id: req.params.id })
+  .then(async (deletedUser) => {
+    if (deletedUser){
+      //remove associated clinical data for the delete patient
+      await ClinicalDataModel.deleteMany({ patientId: req.params.id});
+
+      res.send(200, deletedUser);
+      console.log("delete patient and their clinical record: " + deletedUser);
+    } else {
+      res.send(404, "Patient not found");
+    }
+    return next();
+  })
+  .catch((error) => {
+    console.log("error: " + error);
+    return next (new Error(JSON.stringify(error.errors)));
+  });
+});
+/* server.del("/patients/:id", function (req, res, next) {
   console.log("DELETE /patients params=>" + JSON.stringify(req.params));
   // Delete the user in db
   PatientsModel.findOneAndDelete({ _id: req.params.id })
@@ -145,7 +167,7 @@ server.del("/patients/:id", function (req, res, next) {
       return next(new Error(JSON.stringify(error.errors)));
     });
 });
-
+ */
 // Add clinical data for a specific patient and update the is_patient_critical for both clinical data and patient record
 server.post("/patients/:id/clinicaldata", function (req, res, next) {
   console.log(
