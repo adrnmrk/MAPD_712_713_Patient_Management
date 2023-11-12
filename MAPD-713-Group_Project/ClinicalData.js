@@ -7,6 +7,7 @@ const CLINICAL_DATA_SCHEMA = {
     respiratory_rate: Number,
     blood_oxygen_level: Number,
     pulse_rate: Number,
+    clinic_staff: String,
     is_critical_condition: Boolean
     
 };
