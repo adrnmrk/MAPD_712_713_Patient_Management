@@ -20,7 +20,7 @@ server.listen(PORT, HOST, function () {
   console.log(" /patients");
   console.log(" /patients/:id");
   console.log(" /patients/:id/clinicaldata");
- // console.log(" /patients/critical");
+ console.log(" /patients/critical");
 });
 
 server.use(restify.plugins.fullResponse());
