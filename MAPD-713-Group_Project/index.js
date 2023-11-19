@@ -20,7 +20,7 @@ server.listen(PORT, HOST, function () {
   console.log(" /patients");
   console.log(" /patients/:id");
   console.log(" /patients/:id/clinicaldata");
- console.log(" /patients/critical");
+  console.log(" /patients/critical");
 });
 
 server.use(restify.plugins.fullResponse());
@@ -32,7 +32,7 @@ server.get("/patients", function (req, res, next) {
 
   // Find every entity in db
   PatientsModel.find({})
-  .sort({lastName: 'asc'})
+    .sort({ lastName: "asc" })
     .then((patients) => {
       // Return all of the users in the system
       res.send(patients);
@@ -242,19 +242,26 @@ server.del(
           return next();
         }
 
-        // Remove the specified clinical data from the patient's records by its index
-        const index = patient.clinicalData.findIndex(
-          (data) => data._id == req.params.clinicalDataId
-        );
-        if (index !== -1) {
-          patient.clinicalData.splice(index, 1);
-        } else {
+        // Ensure that patient.clinicalData is an array
+        if (!patient.clinicalData || !Array.isArray(patient.clinicalData)) {
           res.send(404, "Clinical data not found");
           return next();
         }
 
-        // Save the updated patient document
-        return patient.save();
+        // Remove the specified clinical data from the patient's records by its index
+        const index = patient.clinicalData.findIndex(
+          (data) => data._id == req.params.clinicalDataId
+        );
+
+        if (index !== -1) {
+          patient.clinicalData.splice(index, 1);
+
+          // Save the updated patient document
+          return patient.save();
+        } else {
+          res.send(404, "Clinical data not found");
+          return next();
+        }
       })
       .then((updatedPatient) => {
         res.send(
@@ -273,6 +280,7 @@ server.del(
 // Retrieve patients in critical condition based on their latest clinical data
 server.get("/patients/critical", async function (req, res) {
   try {
+    // Get the latest clinical records for each patient, sorted by createdAt in descending order
     const latestRecords = await ClinicalDataModel.aggregate([
       { $sort: { createdAt: -1 } },
       {
@@ -282,19 +290,30 @@ server.get("/patients/critical", async function (req, res) {
         },
       },
     ]);
-
+    //array to store critical patients
     const criticalPatients = [];
-
+    //iterate thru the latest records
     for (const record of latestRecords) {
       const { patientId, is_critical_condition } = record.latestRecord;
 
       if (is_critical_condition) {
         const patient = await PatientsModel.findOne({ _id: patientId });
+        // Add the patient to the criticalPatients array
         criticalPatients.push(patient);
       }
     }
+    // Sort the criticalPatients array based on the createdAt timestamp in descending order
+    criticalPatients.sort((a, b) => {
+      const timestampA = a.createdAt;
+      const timestampB = b.createdAt;
 
-    res.send(criticalPatients); // Send the list of patients in critical condition
+      return timestampB - timestampA;
+    });
+
+    // Send the sorted criticalPatients array as the response
+    res.json(criticalPatients);
+    // Send the list of patients in critical condition
+    res.send(criticalPatients);
   } catch (error) {
     console.log("error: " + error);
     res.send(500, "Internal Server Error");
