@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const PATIENT_SCHEMA = {
     firstName: String,
     lastName: String,
-    dateOfBirth: Date,
+    dateOfBirth: Date, //YYYY-MM-DD format
     age: Number,
     gender: String,
     height: Number,
