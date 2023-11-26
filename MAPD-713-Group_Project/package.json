@@ -1,5 +1,5 @@
 {
-    "name": "Patients API",
+    "name": "patientsapi",
     "version": "1.0.0",
     "description": "REST API - Patients - MongoDb",
     "main": "index.js",
@@ -8,15 +8,24 @@
         "npm": ">=2.1.x"
     },
     "scripts": {
-        "start": "node index.js"
+        "start": "node index.js",
+        "test": "mocha",
+        "test:integration": "mocha test/getPatients-test.js"
     },
     "authors": [
         "Viktor"
     ],
     "license": "MIT",
     "dependencies": {
+        "chai-datetime": "^1.8.0",
         "express": "^4.18.2",
+        "mocha": "*",
+        "moment": "^2.29.4",
         "mongoose": "^7.3.1",
         "restify": "=11.1.0"
+    },
+    "devDependencies": {
+        "chai": "^4.3.10",
+        "chai-http": "^4.4.0"
     }
 }
