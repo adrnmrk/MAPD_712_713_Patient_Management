@@ -41,9 +41,9 @@ describe("GET method to /patients and /patients/critical", function () {
   });
 
   // Test case for adding a new patient, then immediately delete it after confirming it's been added
-describe("POST method to add a record in /patients + DELETE method to delete the created record", function () {
+  describe("POST method to add a record in /patients + DELETE method to delete the created record", function () {
     let generatedId; // Variable to store the generated patient ID
-  
+
     it("should create a new patient with HTTP 201 and non-empty fields", function (done) {
       // Define the patient data for the POST request
       const newPatientData = {
@@ -74,7 +74,7 @@ describe("POST method to add a record in /patients + DELETE method to delete the
         emergencyContactPerson: "Trinity",
         emergencyContactNumber: "555-555-5555",
       };
-  
+
       // POST Request to create a new patient
       chai
         .request(uri)
@@ -85,25 +85,26 @@ describe("POST method to add a record in /patients + DELETE method to delete the
             done(err);
             return;
           }
-  
+
           // Confirm that the patient is successfully created
           expect(res.status).to.equal(201);
           expect(res.body).to.have.property("_id").that.is.a("string");
-  
+
           // Store the generated patient ID for later use
           generatedId = res.body._id;
-  
+          console.log(`Generated Unique Patient ID: ${generatedId}`);
+
           done();
         });
     });
-  
+    // Step 2: Delete the recently created patient
     it("should delete the recently created patient with HTTP 200", function (done) {
       // Ensure that the patient ID is generated before attempting to delete
       if (!generatedId) {
         done(new Error("No generated ID found"));
         return;
       }
-  
+
       // DELETE Request to delete the patient
       chai
         .request(uri)
@@ -113,37 +114,36 @@ describe("POST method to add a record in /patients + DELETE method to delete the
             done(err);
             return;
           }
-  
+
           // Confirm that the patient is successfully deleted
           expect(res.status).to.equal(200);
           expect(res.body).to.deep.include({ _id: generatedId });
-  
-          console.log(`Generated Unique Patient ID: ${generatedId}`);
-  
+
+          console.log(`Patient ${generatedId} deleted successfully`);
+
           done();
         });
     });
-  
-    it("should return HTTP 404 for the recently deleted patient", function (done) {
+    // Step 3: Confirm that the recently deleted patient no longer exists
+    it("should return HTTP 404 when you search for the deleted record", function (done) {
       // Ensure that the patient ID is generated before attempting to confirm deletion
       if (!generatedId) {
         done(new Error("No generated ID found"));
         return;
       }
-  
+
       // GET Request to confirm that the patient doesn't exist after deletion
       chai
         .request(uri)
         .get(`/patients/${generatedId}`)
         .end(function (err, res) {
-          // Confirm that the patient returns HTTP 404 after deletion
+          // Confirm that the patient returns HTTP 404 after deletion, to fail check for 200 instead
           expect(res.status).to.equal(404);
-          console.log(`Patient ${generatedId} deleted successfully`);
+          //expect(res.status).to.equal(200);
+          console.log(`Patient ${generatedId} is not found`);
 
-  
           done();
         });
     });
   });
-  
-  });
+});
