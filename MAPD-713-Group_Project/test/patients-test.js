@@ -6,7 +6,7 @@ chai.use(chaiHttp);
 const uri = "http://127.0.0.1:3000";
 
 describe("GET method to /patients and /patients/critical", function () {
-  // Test case for /patients endpoint
+  // Test case for /patients and patients/critical endpoints
   it("should return HTTP 200 and a valid response body for /patients", function (done) {
     chai
       .request(uri)
