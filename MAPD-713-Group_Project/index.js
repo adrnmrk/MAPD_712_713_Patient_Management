@@ -30,7 +30,7 @@ server.use(restify.plugins.bodyParser());
 server.get("/patients", function (req, res, next) {
   console.log("GET /patients params=>" + JSON.stringify(req.params));
 
-  // Find every entity in db
+  // Find every entity in db, displayed in ASC order
   PatientsModel.find({})
     .sort({ lastName: "asc" })
     .then((patients) => {
@@ -131,7 +131,7 @@ async function updatePatient(patientId, updateFields) {
 server.del("/patients/:id", function (req, res, next) {
   console.log("DELETE /patients params =>" + JSON.stringify(req.params));
 
-  //delete the user + their clinical data in DB
+  //Delete the user and their clinical data 
   PatientsModel.findOneAndDelete({ _id: req.params.id })
     .then(async (deletedUser) => {
       if (deletedUser) {
@@ -151,7 +151,8 @@ server.del("/patients/:id", function (req, res, next) {
     });
 });
 
-// Add clinical data for a specific patient and update the is_patient_critical for both clinical data and patient record
+// Add clinical data for a specific patient and update 
+//the is_patient_critical for both clinical data and patient record
 server.post("/patients/:id/clinicaldata", function (req, res, next) {
   console.log(
     "POST /patients/:id/clinicaldata params=>" + JSON.stringify(req.params)
